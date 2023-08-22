@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+
 #include "MSMenuWidgetClass.generated.h"
 
 class UButton;
@@ -18,10 +19,14 @@ class MULTIPLAYERSESSIONS_API UMSMenuWidgetClass : public UUserWidget
 
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup();
+	void MenuSetup(int32 NumOfPublicConnections = 4, FString TypeOfMatch = FString(TEXT("FreeForAll")));
+
+	UPROPERTY(EditDefaultsOnly)
+	bool bIsCursorEnabledInGame = false;
 	
 protected:
 	virtual bool Initialize() override;
+	virtual void NativeDestruct() override;
 	
 private:
 	UPROPERTY(meta = (BindWidget))
@@ -36,6 +41,13 @@ private:
 	UFUNCTION()
 	void JoinButtonClicked();
 
+	UFUNCTION()
+	void MenuTearDown();
+
 	// The subsystem designed to handle all online session functionality
 	UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;
+
+	int32 NumPublicConnections{4};
+	FString MatchType{TEXT("FreeForAll")};
+	
 };
