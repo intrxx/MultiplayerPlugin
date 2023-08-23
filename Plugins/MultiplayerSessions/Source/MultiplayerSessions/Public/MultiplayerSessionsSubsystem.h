@@ -7,6 +7,16 @@
 
 #include "MultiplayerSessionsSubsystem.generated.h"
 
+/*
+ * Custom delegates created for the UMSMenuWidgetClass to bind callbacks to
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerSystemOnCreateSessionComplete, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerSystemOnDestroySessionComplete, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerSystemOnStartSessionComplete, bool, bWasSuccessful);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerSystemOnFindSessionComplete, const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
+DECLARE_MULTICAST_DELEGATE_OneParam(FMultiplayerSystemOnJoinSessionComplete, EOnJoinSessionCompleteResult::Type Result);
+
 /**
  * 
  */
@@ -26,6 +36,18 @@ public:
 	void JoinSession(const FOnlineSessionSearchResult& SessionResult);
 	void DestroySession();
 	void StartSession();
+
+public:
+	/*
+	* Custom delegates created for the UMSMenuWidgetClass to bind callbacks to
+	*/
+	FMultiplayerSystemOnCreateSessionComplete MultiplayerSystemOnCreateSessionComplete;
+	FMultiplayerSystemOnDestroySessionComplete MultiplayerSystemOnDestroySessionComplete;
+	FMultiplayerSystemOnStartSessionComplete MultiplayerSystemOnStartSessionComplete;
+
+	FMultiplayerSystemOnFindSessionComplete MultiplayerSystemOnFindSessionComplete;
+	FMultiplayerSystemOnJoinSessionComplete MultiplayerSystemOnJoinSessionComplete;
+	
 protected:
 
 	/*
@@ -42,6 +64,7 @@ private:
 	IOnlineSessionPtr SessionInterface;
 
 	TSharedPtr<FOnlineSessionSettings> LastSessionSettings;
+	TSharedPtr<FOnlineSessionSearch> LastSessionSearch;
 	
 	/*
 	 * To add to the Online Session Interface delegate list.
@@ -54,7 +77,7 @@ private:
 	FOnStartSessionCompleteDelegate StartSessionCompleteDelegate;
 
 	FDelegateHandle CreateSessionCompleteDelegateHandle;
-	FDelegateHandle FindSessionCompleteDelegateHandle;
+	FDelegateHandle FindSessionsCompleteDelegateHandle;
 	FDelegateHandle JoinSessionCompleteDelegateHandle;
 	FDelegateHandle DestroySessionCompleteDelegateHandle;
 	FDelegateHandle StartSessionCompleteDelegateHandle;

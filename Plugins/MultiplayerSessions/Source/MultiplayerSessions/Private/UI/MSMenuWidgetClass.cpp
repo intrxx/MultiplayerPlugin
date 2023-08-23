@@ -3,6 +3,8 @@
 
 #include "UI/MSMenuWidgetClass.h"
 #include "MultiplayerSessionsSubsystem.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "OnlineSessionSettings.h"
 #include "Components/Button.h"
 
 void UMSMenuWidgetClass::MenuSetup(int32 NumOfPublicConnections, FString TypeOfMatch)
@@ -24,13 +26,26 @@ void UMSMenuWidgetClass::MenuSetup(int32 NumOfPublicConnections, FString TypeOfM
 			
 			PC->SetInputMode(InputModeData);
 
-			PC->SetShowMouseCursor(true);
+			if(!bIsCursorEnabledInGame)
+			{
+				PC->SetShowMouseCursor(true);
+			}
 		}
 	}
 	
 	if(UGameInstance* GameInstance = GetGameInstance())
 	{
 		MultiplayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
+	}
+
+	if(MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->MultiplayerSystemOnCreateSessionComplete.AddDynamic(this, &ThisClass::OnCreateSession);
+		MultiplayerSessionsSubsystem->MultiplayerSystemOnDestroySessionComplete.AddDynamic(this, &ThisClass::OnDestroySession);
+		MultiplayerSessionsSubsystem->MultiplayerSystemOnStartSessionComplete.AddDynamic(this, &ThisClass::OnStartSession);
+
+		MultiplayerSessionsSubsystem->MultiplayerSystemOnFindSessionComplete.AddUObject(this, &ThisClass::OnFindSession);
+		MultiplayerSessionsSubsystem->MultiplayerSystemOnJoinSessionComplete.AddUObject(this, &ThisClass::OnJoinSession);
 	}
 }
 
@@ -61,6 +76,47 @@ void UMSMenuWidgetClass::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+void UMSMenuWidgetClass::OnCreateSession(bool bWasSuccessful)
+{
+	if(bWasSuccessful)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green,
+			FString("Session Created Successfully"));
+
+		UWorld* World = GetWorld();
+		if(World)
+		{
+			World->ServerTravel("/Game/TopDown/Maps/Lobby?listen");
+		}
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red,
+			FString("Failed to create a Session"));
+	}
+}
+
+void UMSMenuWidgetClass::OnDestroySession(bool bWasSuccessful)
+{
+}
+
+void UMSMenuWidgetClass::OnStartSession(bool bWasSuccessful)
+{
+}
+
+void UMSMenuWidgetClass::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
+{
+	for (auto Result : SessionResults)
+	{
+		FString SettingsValue;
+		Result.Session.SessionSettings.Get(FName("MatchType"), SettingsValue);
+	}
+}
+
+void UMSMenuWidgetClass::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
+{
+}
+
 void UMSMenuWidgetClass::HostButtonClicked()
 {
 	if(GEngine)
@@ -72,12 +128,6 @@ void UMSMenuWidgetClass::HostButtonClicked()
 	if(MultiplayerSessionsSubsystem)
 	{
 		MultiplayerSessionsSubsystem->CreateSession(NumPublicConnections, MatchType);
-
-		UWorld* World = GetWorld();
-		if(World)
-		{
-			World->ServerTravel("/Game/TopDown/Maps/Lobby?listen");
-		}
 	}
 }
 
@@ -87,6 +137,11 @@ void UMSMenuWidgetClass::JoinButtonClicked()
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue,
 			FString("Join Button Clicked"));
+	}
+
+	if(MultiplayerSessionsSubsystem)
+	{
+		MultiplayerSessionsSubsystem->FindSessions(20000);
 	}
 }
 
