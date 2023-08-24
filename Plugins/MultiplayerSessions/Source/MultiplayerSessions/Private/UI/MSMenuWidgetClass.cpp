@@ -5,6 +5,7 @@
 #include "MultiplayerSessionsSubsystem.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSessionSettings.h"
+#include "OnlineSubsystem.h"
 #include "Components/Button.h"
 
 void UMSMenuWidgetClass::MenuSetup(int32 NumOfPublicConnections, FString TypeOfMatch)
@@ -106,15 +107,42 @@ void UMSMenuWidgetClass::OnStartSession(bool bWasSuccessful)
 
 void UMSMenuWidgetClass::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
 {
+	if(MultiplayerSessionsSubsystem == nullptr)
+	{
+		return;
+	}
+	
 	for (auto Result : SessionResults)
 	{
 		FString SettingsValue;
 		Result.Session.SessionSettings.Get(FName("MatchType"), SettingsValue);
+
+		if(SettingsValue == MatchType)
+		{
+			MultiplayerSessionsSubsystem->JoinSession(Result);
+			return;
+		}
 	}
 }
 
 void UMSMenuWidgetClass::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 {
+	IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
+	if(Subsystem)
+	{
+		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		if(SessionInterface.IsValid())
+		{
+			FString Address;
+			SessionInterface->GetResolvedConnectString(NAME_GameSession, Address);
+
+			APlayerController* PC = GetGameInstance()->GetFirstLocalPlayerController();
+			if(PC)
+			{
+				PC->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+			}
+		}
+	}
 }
 
 void UMSMenuWidgetClass::HostButtonClicked()
