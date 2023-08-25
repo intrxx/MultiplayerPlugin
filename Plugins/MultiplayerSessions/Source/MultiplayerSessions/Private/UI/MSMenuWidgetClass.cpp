@@ -8,8 +8,9 @@
 #include "OnlineSubsystem.h"
 #include "Components/Button.h"
 
-void UMSMenuWidgetClass::MenuSetup(int32 NumOfPublicConnections, FString TypeOfMatch)
+void UMSMenuWidgetClass::MenuSetup(int32 NumOfPublicConnections, FString TypeOfMatch, FString LobbyPath)
 {
+	PathToLobby = FString::Printf(TEXT("%s?listen"), *LobbyPath);
 	NumPublicConnections = NumOfPublicConnections;
 	MatchType = TypeOfMatch;
 	
@@ -87,11 +88,13 @@ void UMSMenuWidgetClass::OnCreateSession(bool bWasSuccessful)
 		UWorld* World = GetWorld();
 		if(World)
 		{
-			World->ServerTravel("/Game/TopDown/Maps/Lobby?listen");
+			World->ServerTravel(PathToLobby);
 		}
 	}
 	else
 	{
+		HostButton->SetIsEnabled(true);
+		
 		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red,
 			FString("Failed to create a Session"));
 	}
@@ -103,6 +106,16 @@ void UMSMenuWidgetClass::OnDestroySession(bool bWasSuccessful)
 
 void UMSMenuWidgetClass::OnStartSession(bool bWasSuccessful)
 {
+	if(MultiplayerSessionsSubsystem == nullptr)
+	{
+		return;
+	}
+
+	if(GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue,
+			FString("Session has started successfully"));
+	}
 }
 
 void UMSMenuWidgetClass::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
@@ -122,6 +135,11 @@ void UMSMenuWidgetClass::OnFindSession(const TArray<FOnlineSessionSearchResult>&
 			MultiplayerSessionsSubsystem->JoinSession(Result);
 			return;
 		}
+	}
+
+	if(!bWasSuccessful || SessionResults.Num() == 0)
+	{
+		JoinButton->SetIsEnabled(true);
 	}
 }
 
@@ -143,10 +161,17 @@ void UMSMenuWidgetClass::OnJoinSession(EOnJoinSessionCompleteResult::Type Result
 			}
 		}
 	}
+
+	if(Result != EOnJoinSessionCompleteResult::Success)
+	{
+		JoinButton->SetIsEnabled(true);
+	}
 }
 
 void UMSMenuWidgetClass::HostButtonClicked()
 {
+	HostButton->SetIsEnabled(false);
+	
 	if(GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue,
@@ -161,6 +186,8 @@ void UMSMenuWidgetClass::HostButtonClicked()
 
 void UMSMenuWidgetClass::JoinButtonClicked()
 {
+	JoinButton->SetIsEnabled(false);
+	
 	if(GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Blue,
